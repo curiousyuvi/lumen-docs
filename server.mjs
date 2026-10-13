@@ -51,7 +51,7 @@ const readState = (c) => { try { return { ...defaults(), ...JSON.parse(Buffer.fr
 const redirect = (res, to, ...cookie) => { res.writeHead(302, { location: to, 'set-cookie': cookie.filter(Boolean) }); res.end(); };
 
 export default async function handler(req, res) {
-  const url = new URL(req.url, 'http://x'); const path = url.pathname; const c = cookies(req); const authed = c.sid === token;
+  const url = new URL(req.url, 'http://x'); const rewritten = url.searchParams.get('__p'); const path = rewritten != null ? '/' + rewritten : url.pathname; const c = cookies(req); const authed = c.sid === token;
   if (path === '/login' && req.method === 'POST') { const f = await body(req); if (f.get('email') === USER && f.get('password') === PASS) return redirect(res, '/dashboard', `sid=${token}; Path=/; HttpOnly; SameSite=Lax`); res.writeHead(401, { 'content-type': 'text/html' }); return res.end(loginPage(true)); }
   if (path === '/login' || path === '/') { if (authed) return redirect(res, '/dashboard'); res.writeHead(200, { 'content-type': 'text/html' }); return res.end(loginPage(false)); }
   if (path === '/logout') return redirect(res, '/login', 'sid=; Path=/; Max-Age=0');

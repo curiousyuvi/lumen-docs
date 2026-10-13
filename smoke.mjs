@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
-const base = 'http://localhost:' + (process.env.PORT || 3000);
+const base = process.env.BASE || 'http://localhost:' + (process.env.PORT || 3000);
 const r1 = await fetch(base + '/dashboard', { redirect: 'manual' }); assert.equal(r1.status, 302);
 const login = await fetch(base + '/login', { method: 'POST', body: new URLSearchParams({ email: 'demo@lumendocs.test', password: 'lumen-demo-2026' }), redirect: 'manual' });
-assert.equal(login.status, 302); const cookie = login.headers.get('set-cookie').split(';')[0];
-const h = { cookie };
-for (const p of ['/dashboard', '/articles', '/articles/new', '/analytics', '/customize/general', '/customize/theme', '/customize/domains', '/customize/seo', '/settings/billing', '/settings/members']) assert.equal((await fetch(base + p, { headers: h })).status, 200, p);
-const bad = await fetch(base + '/customize/domains', { method: 'POST', headers: h, body: new URLSearchParams({ domain: 'not a domain' }), redirect: 'manual' }); assert.match(bad.headers.get('location'), /err=1/);
-await fetch(base + '/theme', { method: 'POST', headers: h, redirect: 'manual' }); assert.match(await (await fetch(base + '/dashboard', { headers: h })).text(), /data-theme="dark"/);
-console.log('smoke ok');
+assert.equal(login.status, 302); let cookie = login.headers.get('set-cookie').split(';')[0];
+for (const p of ['/dashboard', '/articles', '/articles/new', '/analytics', '/customize/general', '/customize/theme', '/customize/domains', '/customize/seo', '/settings/billing', '/settings/members']) assert.equal((await fetch(base + p, { headers: { cookie } })).status, 200, p);
+const bad = await fetch(base + '/customize/domains', { method: 'POST', headers: { cookie }, body: new URLSearchParams({ domain: 'not a domain' }), redirect: 'manual' }); assert.match(bad.headers.get('location'), /err=1/);
+const t = await fetch(base + '/theme', { method: 'POST', headers: { cookie }, redirect: 'manual' }); cookie += '; ' + t.headers.get('set-cookie').split(';')[0];
+assert.match(await (await fetch(base + '/dashboard', { headers: { cookie } })).text(), /data-theme="dark"/);
+console.log('smoke ok', base);
